@@ -1,0 +1,74 @@
+{
+  "name": "saudi_arabia",
+  "width": 1432,
+  "height": 1266,
+  "nations": [
+    {
+      "coordinates": [1265, 836],
+      "name": "Eastern Province",
+      "strength": 3,
+      "flag": "eastern_province"
+    },
+    {
+      "coordinates": [796, 691],
+      "name": "Ar-Riyadh",
+      "strength": 2,
+      "flag": "arriyadh"
+    },
+    {
+      "coordinates": [828, 1140],
+      "name": "Najran",
+      "strength": 1
+    },
+    {
+      "coordinates": [544, 173],
+      "name": "Northern Borders",
+      "strength": 1
+    },
+    {
+      "coordinates": [294, 173],
+      "name": "Al-Jouf",
+      "strength": 1
+    },
+    {
+      "coordinates": [428, 318],
+      "name": "Ha'il",
+      "strength": 2
+    },
+    {
+      "coordinates": [82, 307],
+      "name": "Tabuk",
+      "strength": 1
+    },
+    {
+      "coordinates": [265, 484],
+      "name": "Madinah",
+      "strength": 1
+    },
+    {
+      "coordinates": [410, 720],
+      "name": "Makkah",
+      "strength": 2
+    },
+    {
+      "coordinates": [535, 1102],
+      "name": "Jizan",
+      "strength": 1
+    },
+    {
+      "coordinates": [566, 1022],
+      "name": "Asir",
+      "strength": 1
+    },
+    {
+      "coordinates": [459, 941],
+      "name": "Bahah",
+      "strength": 1
+    },
+    {
+      "coordinates": [555, 472],
+      "name": "Qasim",
+      "strength": 1
+    }
+  ]
+}
