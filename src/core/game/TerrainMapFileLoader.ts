@@ -43,6 +43,7 @@ const MAP_FILE_NAMES: Record<GameMapType, string> = {
   [GameMapType.KnownWorld]: "KnownWorld",
   [GameMapType.FaroeIslands]: "FaroeIslands",
   [GameMapType.EuropeClassic]: "EuropeClassic",
+  [GameMapType.SaudiArabia]: "SaudiArabia",
 };
 
 class GameMapLoader {

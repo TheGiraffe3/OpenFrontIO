@@ -101,6 +101,7 @@ export abstract class DefaultServerConfig implements ServerConfig {
         GameMapType.BetweenTwoSeas,
         GameMapType.BlackSea,
         GameMapType.Pangaea,
+        GameMapType.SaudiArabia,
       ].includes(map)
     ) {
       return Math.random() < 0.5 ? 30 : 15;

@@ -24,6 +24,7 @@ const maps = [
   "Japan",
   "KnownWorld",
   "FaroeIslands",
+  "SaudiArabia",
 ];
 
 const removeSmall = true;

@@ -16,6 +16,7 @@ import mena from "../../../resources/maps/MenaThumb.webp";
 import northAmerica from "../../../resources/maps/NorthAmericaThumb.webp";
 import oceania from "../../../resources/maps/OceaniaThumb.webp";
 import pangaea from "../../../resources/maps/PangaeaThumb.webp";
+import saudiarabia from "../../../resources/maps/SaudiArabiaThumb.webp";
 import southAmerica from "../../../resources/maps/SouthAmericaThumb.webp";
 import world from "../../../resources/maps/WorldMapThumb.webp";
 
@@ -63,6 +64,8 @@ export function getMapsImage(map: GameMapType): string {
       return knownworld;
     case GameMapType.FaroeIslands:
       return faroeislands;
+    case GameMapType.SaudiArabia:
+      return saudiarabia;
     default:
       return "";
   }
