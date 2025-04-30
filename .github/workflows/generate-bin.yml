@@ -1,0 +1,27 @@
+name: Generate bin file
+
+on: [workflow_dispatch]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+      - name: Setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Setup npm
+        run: |
+          npm i
+          cd src/scripts
+      - name: Generate bin
+        run: npm run TerrainMapGenerator
+        shell: bash
+#      - uses: actions/upload-artifact@v4
+ #       with:
+  #        path: out/index.html
+   #       retention-days: 1
