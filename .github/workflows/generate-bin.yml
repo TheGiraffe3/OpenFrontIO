@@ -19,7 +19,7 @@ jobs:
           npm i
           cd src/scripts
       - name: Generate bin
-        run: npm run TerrainMapGenerator
+        run: npm run # TerrainMapGenerator
         shell: bash
 #      - uses: actions/upload-artifact@v4
  #       with:
