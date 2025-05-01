@@ -15,10 +15,11 @@ jobs:
         with:
           node-version: 20
       - name: Setup npm
-        run: |
-          npm i
-          npm install -g typescript
-          cd src/scripts
+        run: npm i
+      - name: install typescript
+        run: npm install -g typescript
+      - name: Go to correct directory
+        run: cd src/scripts
       - name: Make output directory
         run: mkdir output
       - name: Show path
