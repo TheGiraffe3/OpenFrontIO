@@ -19,8 +19,9 @@ jobs:
           npm i
           npm install -g typescript
           cd src/scripts
+          mkdir output
       - name: Generate bin
         run: npm run TerrainMapGenerator.ts
       - uses: actions/upload-artifact@v4
         with:
-          path: out/map.bin
+          path: output/map.bin
