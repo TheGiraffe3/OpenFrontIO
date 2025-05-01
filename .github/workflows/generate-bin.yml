@@ -18,10 +18,18 @@ jobs:
         run: npm i
       - name: install typescript
         run: npm install -g typescript
+      - name: ls
+        run: ls
       - name: Go to correct directory
-        run: cd src/scripts
+        run: cd src
+      - name: ls
+        run: ls
+      - name: go to scripts
+        run: cd scripts
       - name: Make output directory
         run: mkdir output
+      - name: ls
+        run: ls
       - name: Show path
         run: pwd
       - name: Generate bin
