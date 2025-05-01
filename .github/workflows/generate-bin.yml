@@ -17,6 +17,7 @@ jobs:
       - name: Setup npm
         run: |
           npm i
+          npm install -g typescript
           cd src/scripts
       - name: Generate bin
         run: npm run TerrainMapGenerator.ts
