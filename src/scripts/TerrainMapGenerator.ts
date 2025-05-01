@@ -27,7 +27,7 @@ class Terrain {
 export async function generateMap(
   imageBuffer: Buffer,
   removeSmall = true,
-  name: string = "",
+  name: string = "arabian-peninsula.jpg",
 ): Promise<{ map: Uint8Array; miniMap: Uint8Array; thumb: Bitmap }> {
   const stream = Readable.from(imageBuffer);
   const img = await decodePNGFromStream(stream);
