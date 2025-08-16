@@ -23,7 +23,7 @@ jobs:
     permissions:
       pull-requests: write
     steps:
-      - uses: toshimaru/auto-author-assign@v2.1.1
+      - uses: toshimaru/auto-author-assign@7e15cd70c245ad136377c3fab3479815df10d844
 
   validate-description:
     name: Validate Description
