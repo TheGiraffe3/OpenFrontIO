@@ -69,5 +69,11 @@ jobs:
         with:
           node-version: "20"
           cache: "npm"
+      - run: git config user.email github-actions[bot]
+      - run: git config user.name github-actions[bot]
       - run: npm ci
-      - run: npx prettier --check .
+      - run: npx prettier --check --write .
+      - run: git add .
+      - run: git commit -m "run prettier"
+      - run: git push --force
+      
