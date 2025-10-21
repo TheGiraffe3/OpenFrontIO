@@ -1,7 +1,11 @@
 import { z } from "zod";
 import quickChatData from "../../resources/QuickChat.json" with { type: "json" };
 import countries from "../client/data/countries.json" with { type: "json" };
-import { PatternSchema } from "./CosmeticSchemas";
+import {
+  ColorPaletteSchema,
+  PatternDataSchema,
+  PatternNameSchema,
+} from "./CosmeticSchemas";
 import {
   AllPlayers,
   Difficulty,
@@ -10,7 +14,6 @@ import {
   GameMapType,
   GameMode,
   GameType,
-  PlayerType,
   Quads,
   Trios,
   UnitType,
@@ -109,8 +112,12 @@ export type ClientHashMessage = z.infer<typeof ClientHashSchema>;
 
 export type AllPlayersStats = z.infer<typeof AllPlayersStatsSchema>;
 export type Player = z.infer<typeof PlayerSchema>;
+export type PlayerCosmetics = z.infer<typeof PlayerCosmeticsSchema>;
+export type PlayerCosmeticRefs = z.infer<typeof PlayerCosmeticRefsSchema>;
+export type PlayerPattern = z.infer<typeof PlayerPatternSchema>;
+export type PlayerColor = z.infer<typeof PlayerColorSchema>;
+export type Flag = z.infer<typeof FlagSchema>;
 export type GameStartInfo = z.infer<typeof GameStartInfoSchema>;
-const PlayerTypeSchema = z.enum(PlayerType);
 
 export interface GameInfo {
   gameID: GameID;
@@ -157,6 +164,7 @@ export const GameConfigSchema = z.object({
   infiniteTroops: z.boolean(),
   instantBuild: z.boolean(),
   maxPlayers: z.number().optional(),
+  maxTimerValue: z.number().int().min(1).max(120).optional(),
   disabledUnits: z.enum(UnitType).array().optional(),
   playerTeams: TeamCountConfigSchema.optional(),
 });
@@ -196,18 +204,6 @@ export const AllPlayersStatsSchema = z.record(ID, PlayerStatsSchema);
 
 export const UsernameSchema = SafeString;
 const countryCodes = countries.filter((c) => !c.restricted).map((c) => c.code);
-export const FlagSchema = z
-  .string()
-  .max(128)
-  .optional()
-  .refine(
-    (val) => {
-      if (val === undefined || val === "") return true;
-      if (val.startsWith("!")) return true;
-      return countryCodes.includes(val);
-    },
-    { message: "Invalid flag: must be a valid country code or start with !" },
-  );
 
 export const QuickChatKeySchema = z.enum(
   Object.entries(quickChatData).flatMap(([category, entries]) =>
@@ -283,7 +279,7 @@ export const EmbargoIntentSchema = BaseIntentSchema.extend({
 export const DonateGoldIntentSchema = BaseIntentSchema.extend({
   type: z.literal("donate_gold"),
   recipient: ID,
-  gold: z.bigint().nullable(),
+  gold: z.number().nullable(),
 });
 
 export const DonateTroopIntentSchema = BaseIntentSchema.extend({
@@ -377,11 +373,46 @@ export const TurnSchema = z.object({
   hash: z.number().nullable().optional(),
 });
 
+export const FlagSchema = z
+  .string()
+  .max(128)
+  .optional()
+  .refine(
+    (val) => {
+      if (val === undefined || val === "") return true;
+      if (val.startsWith("!")) return true;
+      return countryCodes.includes(val);
+    },
+    { message: "Invalid flag: must be a valid country code or start with !" },
+  );
+
+export const PlayerCosmeticRefsSchema = z.object({
+  flag: FlagSchema.optional(),
+  color: z.string().optional(),
+  patternName: PatternNameSchema.optional(),
+  patternColorPaletteName: z.string().optional(),
+});
+
+export const PlayerPatternSchema = z.object({
+  name: PatternNameSchema,
+  patternData: PatternDataSchema,
+  colorPalette: ColorPaletteSchema.optional(),
+});
+
+export const PlayerColorSchema = z.object({
+  color: z.string(),
+});
+
+export const PlayerCosmeticsSchema = z.object({
+  flag: FlagSchema.optional(),
+  pattern: PlayerPatternSchema.optional(),
+  color: PlayerColorSchema.optional(),
+});
+
 export const PlayerSchema = z.object({
   clientID: ID,
   username: UsernameSchema,
-  flag: FlagSchema,
-  pattern: PatternSchema.optional(),
+  cosmetics: PlayerCosmeticsSchema.optional(),
 });
 
 export const GameStartInfoSchema = z.object({
@@ -487,8 +518,8 @@ export const ClientJoinMessageSchema = z.object({
   gameID: ID,
   lastTurn: z.number(), // The last turn the client saw.
   username: UsernameSchema,
-  flag: FlagSchema,
-  patternName: z.string().optional(),
+  // Server replaces the refs with the actual cosmetic data.
+  cosmetics: PlayerCosmeticRefsSchema.optional(),
 });
 
 export const ClientMessageSchema = z.discriminatedUnion("type", [

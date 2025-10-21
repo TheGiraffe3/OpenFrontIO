@@ -12,7 +12,6 @@ import {
   AlternateViewEvent,
   DragEvent,
   MouseOverEvent,
-  RefreshGraphicsEvent,
 } from "../../InputHandler";
 import { TransformHandler } from "../TransformHandler";
 import { Layer } from "./Layer";
@@ -75,11 +74,6 @@ export class TerritoryLayer implements Layer {
   }
 
   tick() {
-    const prev = this.cachedTerritoryPatternsEnabled;
-    this.cachedTerritoryPatternsEnabled = this.userSettings.territoryPatterns();
-    if (prev !== undefined && prev !== this.cachedTerritoryPatternsEnabled) {
-      this.eventBus.emit(new RefreshGraphicsEvent());
-    }
     this.game.recentlyUpdatedTiles().forEach((t) => this.enqueueTile(t));
     const updates = this.game.updatesSinceLastTick();
     const unitUpdates = updates !== null ? updates[GameUpdateType.Unit] : [];
@@ -155,6 +149,11 @@ export class TerritoryLayer implements Layer {
     if (!this.game.inSpawnPhase()) {
       return;
     }
+
+    this.spawnHighlight();
+  }
+
+  private spawnHighlight() {
     if (this.game.ticks() % 5 === 0) {
       return;
     }
@@ -165,11 +164,18 @@ export class TerritoryLayer implements Layer {
       this.game.width(),
       this.game.height(),
     );
+
+    this.drawFocusedPlayerHighlight();
+
     const humans = this.game
       .playerViews()
       .filter((p) => p.type() === PlayerType.Human);
 
+    const focusedPlayer = this.game.focusedPlayer();
     for (const human of humans) {
+      if (human === focusedPlayer) {
+        continue;
+      }
       const center = human.nameLocation();
       if (!center) {
         continue;
@@ -196,37 +202,34 @@ export class TerritoryLayer implements Layer {
         }
       }
     }
+  }
+
+  private drawFocusedPlayerHighlight() {
+    const focusedPlayer = this.game.focusedPlayer();
+
+    if (!focusedPlayer) {
+      return;
+    }
+    const center = focusedPlayer.nameLocation();
+    if (!center) {
+      return;
+    }
     // Breathing border animation
-    this.borderAnimTime += 1;
-    const minPadding = 3;
-    const maxPadding = 8;
+    this.borderAnimTime += 3;
+    const minPadding = 6;
+    const maxPadding = 12;
     // Range: [minPadding..maxPadding]
     const breathingPadding =
       minPadding +
       (maxPadding - minPadding) *
         (0.5 + 0.5 * Math.sin(this.borderAnimTime * 0.3));
 
-    if (focusedPlayer) {
-      // Clear previous animated border
-      if (this.highlightContext) {
-        this.highlightContext.clearRect(
-          0,
-          0,
-          this.game.width(),
-          this.game.height(),
-        );
-      }
-
-      const center = focusedPlayer.nameLocation();
-      if (center) {
-        this.drawBreathingRing(
-          center.x,
-          center.y,
-          breathingPadding,
-          this.theme.spawnHighlightColor(),
-        );
-      }
-    }
+    this.drawBreathingRing(
+      center.x,
+      center.y,
+      breathingPadding,
+      this.theme.spawnHighlightColor(),
+    );
   }
 
   init() {
@@ -453,64 +456,37 @@ export class TerritoryLayer implements Layer {
       return;
     }
     const owner = this.game.owner(tile) as PlayerView;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const isHighlighted =
       this.highlightedTerritory &&
       this.highlightedTerritory.id() === owner.id();
     const myPlayer = this.game.myPlayer();
 
     if (this.game.isBorder(tile)) {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const playerIsFocused = owner && this.game.focusedPlayer() === owner;
       if (myPlayer) {
         const alternativeColor = this.alternateViewColor(owner);
         this.paintTile(this.alternativeImageData, tile, alternativeColor, 255);
       }
-      if (
-        this.game.hasUnitNearby(
-          tile,
-          this.game.config().defensePostRange(),
-          UnitType.DefensePost,
-          owner.id(),
-        )
-      ) {
-        const borderColors = this.theme.defendedBorderColors(owner);
-        const x = this.game.x(tile);
-        const y = this.game.y(tile);
-        const lightTile =
-          (x % 2 === 0 && y % 2 === 0) || (y % 2 === 1 && x % 2 === 1);
-        const borderColor = lightTile ? borderColors.light : borderColors.dark;
-        this.paintTile(this.imageData, tile, borderColor, 255);
-      } else {
-        const useBorderColor = playerIsFocused
-          ? this.theme.focusedBorderColor()
-          : this.theme.borderColor(owner);
-        this.paintTile(this.imageData, tile, useBorderColor, 255);
-      }
-    } else {
-      // Interior tiles
-      const pattern = owner.cosmetics.pattern;
-      const patternsEnabled = this.cachedTerritoryPatternsEnabled ?? false;
+      const isDefended = this.game.hasUnitNearby(
+        tile,
+        this.game.config().defensePostRange(),
+        UnitType.DefensePost,
+        owner.id(),
+      );
 
+      this.paintTile(
+        this.imageData,
+        tile,
+        owner.borderColor(tile, isDefended),
+        255,
+      );
+    } else {
       // Alternative view only shows borders.
       this.clearAlternativeTile(tile);
 
-      if (pattern === undefined || patternsEnabled === false) {
-        this.paintTile(
-          this.imageData,
-          tile,
-          this.theme.territoryColor(owner),
-          150,
-        );
-      } else {
-        const x = this.game.x(tile);
-        const y = this.game.y(tile);
-        const baseColor = this.theme.territoryColor(owner);
-
-        const decoder = owner.patternDecoder();
-        const color = decoder?.isSet(x, y)
-          ? baseColor.darken(0.125)
-          : baseColor;
-        this.paintTile(this.imageData, tile, color, 150);
-      }
+      this.paintTile(this.imageData, tile, owner.territoryColor(tile), 150);
     }
   }
 
@@ -593,7 +569,7 @@ export class TerritoryLayer implements Layer {
     ctx.beginPath();
     ctx.arc(cx, cy, radius, 0, Math.PI * 2);
     ctx.strokeStyle = color.toRgbString();
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 4;
     ctx.stroke();
   }
 }

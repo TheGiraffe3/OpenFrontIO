@@ -23,7 +23,6 @@ import { GameManager } from "./GameManager";
 import { getUserMe, verifyClientToken } from "./jwt";
 import { logger } from "./Logger";
 
-import { assertNever } from "../core/Util";
 import { PrivilegeRefresher } from "./PrivilegeRefresher";
 import { initWorkerMetrics } from "./WorkerMetrics";
 
@@ -363,47 +362,16 @@ export async function startWorker() {
           }
         }
 
-        // Check if the flag is allowed
-        if (clientMsg.flag !== undefined) {
-          if (clientMsg.flag.startsWith("!")) {
-            const allowed = privilegeRefresher
-              .get()
-              .isCustomFlagAllowed(clientMsg.flag, flares);
-            if (allowed !== true) {
-              log.warn(`Custom flag ${allowed}: ${clientMsg.flag}`);
-              ws.close(1002, `Custom flag ${allowed}`);
-              return;
-            }
-          }
-        }
+        const cosmeticResult = privilegeRefresher
+          .get()
+          .isAllowed(flares ?? [], clientMsg.cosmetics ?? {});
 
-        let pattern: string | undefined;
-        // Check if the pattern is allowed
-        if (clientMsg.patternName !== undefined) {
-          const result = privilegeRefresher
-            .get()
-            .isPatternAllowed(clientMsg.patternName, flares);
-          switch (result.type) {
-            case "allowed":
-              pattern = result.pattern;
-              break;
-            case "unknown":
-              log.warn(`Pattern ${clientMsg.patternName} unknown`);
-              ws.close(
-                1002,
-                "Could not look up pattern, backend may be offline",
-              );
-              return;
-            case "forbidden":
-              log.warn(`Pattern ${clientMsg.patternName}: ${result.reason}`);
-              ws.close(
-                1002,
-                `Pattern ${clientMsg.patternName}: ${result.reason}`,
-              );
-              return;
-            default:
-              assertNever(result);
-          }
+        if (cosmeticResult.type === "forbidden") {
+          log.warn(`Forbidden: ${cosmeticResult.reason}`, {
+            clientID: clientMsg.clientID,
+          });
+          ws.close(1002, cosmeticResult.reason);
+          return;
         }
 
         // Create client and add to game
@@ -416,8 +384,7 @@ export async function startWorker() {
           ip,
           clientMsg.username,
           ws,
-          clientMsg.flag,
-          pattern,
+          cosmeticResult.cosmetics,
         );
 
         const wasFound = gm.addClient(

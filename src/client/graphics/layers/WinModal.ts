@@ -1,12 +1,16 @@
 import { LitElement, TemplateResult, html } from "lit";
 import { customElement, state } from "lit/decorators.js";
-import { translateText } from "../../../client/Utils";
-import { Pattern } from "../../../core/CosmeticSchemas";
+import { isInIframe, translateText } from "../../../client/Utils";
+import { ColorPalette, Pattern } from "../../../core/CosmeticSchemas";
 import { EventBus } from "../../../core/EventBus";
 import { GameUpdateType } from "../../../core/game/GameUpdates";
 import { GameView } from "../../../core/game/GameView";
 import "../../components/PatternButton";
-import { fetchPatterns, handlePurchase } from "../../Cosmetics";
+import {
+  fetchCosmetics,
+  handlePurchase,
+  patternRelationship,
+} from "../../Cosmetics";
 import { getUserMe } from "../../jwt";
 import { SendWinnerEvent } from "../../Transport";
 import { Layer } from "./Layer";
@@ -25,9 +29,14 @@ export class WinModal extends LitElement implements Layer {
   showButtons = false;
 
   @state()
+  private isWin = false;
+
+  @state()
   private patternContent: TemplateResult | null = null;
 
   private _title: string;
+
+  private rand = Math.random();
 
   // Override to prevent shadow DOM creation
   createRenderRoot() {
@@ -64,7 +73,9 @@ export class WinModal extends LitElement implements Layer {
             @click=${this.hide}
             class="flex-1 px-3 py-3 text-base cursor-pointer bg-blue-500/60 text-white border-0 rounded transition-all duration-200 hover:bg-blue-500/80 hover:-translate-y-px active:translate-y-px"
           >
-            ${translateText("win_modal.keep")}
+            ${this.isWin
+              ? translateText("win_modal.keep")
+              : translateText("win_modal.spectate")}
           </button>
         </div>
       </div>
@@ -89,6 +100,9 @@ export class WinModal extends LitElement implements Layer {
   }
 
   innerHtml() {
+    if (isInIframe() || this.rand < 0.25) {
+      return this.steamWishlist();
+    }
     return this.renderPatternButton();
   }
 
@@ -108,19 +122,41 @@ export class WinModal extends LitElement implements Layer {
 
   async loadPatternContent() {
     const me = await getUserMe();
-    const patterns = await fetchPatterns(me !== false ? me : null);
+    const patterns = await fetchCosmetics();
 
-    const purchasable = Array.from(patterns.values()).filter(
-      (p) => p.product !== null,
-    );
+    const purchasablePatterns: {
+      pattern: Pattern;
+      colorPalette: ColorPalette;
+    }[] = [];
 
-    if (purchasable.length === 0) {
+    for (const pattern of Object.values(patterns?.patterns ?? {})) {
+      for (const colorPalette of pattern.colorPalettes ?? []) {
+        if (
+          patternRelationship(
+            pattern,
+            colorPalette,
+            me !== false ? me : null,
+            null,
+          ) === "purchasable"
+        ) {
+          const palette = patterns?.colorPalettes?.[colorPalette.name];
+          if (palette) {
+            purchasablePatterns.push({
+              pattern,
+              colorPalette: palette,
+            });
+          }
+        }
+      }
+    }
+
+    if (purchasablePatterns.length === 0) {
       this.patternContent = html``;
       return;
     }
 
     // Shuffle the array and take patterns based on screen size
-    const shuffled = [...purchasable].sort(() => Math.random() - 0.5);
+    const shuffled = [...purchasablePatterns].sort(() => Math.random() - 0.5);
     const isMobile = window.innerWidth < 768; // md breakpoint
     const maxPatterns = isMobile ? 1 : 3;
     const selectedPatterns = shuffled.slice(
@@ -131,11 +167,14 @@ export class WinModal extends LitElement implements Layer {
     this.patternContent = html`
       <div class="flex gap-4 flex-wrap justify-start">
         ${selectedPatterns.map(
-          (pattern) => html`
+          ({ pattern, colorPalette }) => html`
             <pattern-button
               .pattern=${pattern}
+              .colorPalette=${colorPalette}
+              .requiresPurchase=${true}
               .onSelect=${(p: Pattern | null) => {}}
-              .onPurchase=${(p: Pattern) => handlePurchase(p)}
+              .onPurchase=${(p: Pattern, colorPalette: ColorPalette | null) =>
+                handlePurchase(p, colorPalette)}
             ></pattern-button>
           `,
         )}
@@ -201,10 +240,12 @@ export class WinModal extends LitElement implements Layer {
         this.eventBus.emit(new SendWinnerEvent(wu.winner, wu.allPlayersStats));
         if (wu.winner[1] === this.game.myPlayer()?.team()) {
           this._title = translateText("win_modal.your_team");
+          this.isWin = true;
         } else {
           this._title = translateText("win_modal.other_team", {
             team: wu.winner[1],
           });
+          this.isWin = false;
         }
         this.show();
       } else {
@@ -221,10 +262,12 @@ export class WinModal extends LitElement implements Layer {
           winnerClient === this.game.myPlayer()?.clientID()
         ) {
           this._title = translateText("win_modal.you_won");
+          this.isWin = true;
         } else {
           this._title = translateText("win_modal.other_won", {
             player: winner.name(),
           });
+          this.isWin = false;
         }
         this.show();
       }
